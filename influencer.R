@@ -12,7 +12,27 @@ train <- sample(1:length(data$Choice), 0.8 * length(data$Choice), replace = FALS
 library(gbm)
 
 ada_1 <- gbm(Choice ~ ., distribution = "adaboost", 
-             data = data[train, ], n.trees = 2000, interaction.depth = 6, train.fraction = 1, cv.folds = 5)
+             data = data[train, ], n.trees = 4000, 
+             shrinkage = 0.01,
+             interaction.depth = 1, train.fraction = 1, cv.folds = 4)
+
+# install.packages("ada")
+library(ada)
+
+# install.packages("lars")
+library(lars)
+
+lasso_1 <- lars(as.matrix(data[train, -1]), as.numeric(data[train, 1]), type = "lasso")
+
+# install.packages("glmnet")
+library(glmnet)
+
+glm_1 <- cv.glmnet(as.matrix(data[train, -1]), as.factor(data[train, 1]),
+       family = "binomial", type = "class")
+
+
+# ada_2 <- ada(as.matrix(data[train, -1]), as.numeric(data[train, 1]), loss = "data",
+#              type = "real", iter = 400, nu = 0.1, bag.frac = 0.5)
 
 # # 0.8512
 # ada_1 <- gbm(Choice ~ ., distribution = "adaboost", 
@@ -23,10 +43,14 @@ ada_1 <- gbm(Choice ~ ., distribution = "adaboost",
 #              data = data[train, ], n.trees = 1000, interaction.depth = 8, train.fraction = 0.8, cv.folds = 9)
 
 
-pred.ada_1 <- predict(ada_1, newdata = data[-train, ], type="response")
+# pred.ada_1 <- predict(ada_1, newdata = data[-train, ], type="response")
+# pred.ada_1 <- predict(glm_1, newx = as.matrix(data[-train, -1]), s = 0.1, type="response")
+# pred.ada_1 <- as.numeric(predict(glm_1, as.matrix(data[-train, -1]), type="class", s=glm_1$lambda.1se))
+# pred.ada_1 <- predict(lasso_1, newx = as.matrix(data[-train, -1]), s = 10, type="fit")
+
 pred.label <- 1*(pred.ada_1 > 0) #1: > 0; 0: otherwise
 
-table(pred.label, data[-train , 1]) #In test data, the label is -1 & 1
+table(pred.ada_1, data[-train , 1]) #In test data, the label is -1 & 1
 
 
 # AUC 
