@@ -12,24 +12,73 @@ train <- sample(1:length(data$Choice), 0.8 * length(data$Choice), replace = FALS
 library(gbm)
 
 ada_1 <- gbm(Choice ~ ., distribution = "adaboost", 
-             data = data[train, ], n.trees = 4000, 
-             shrinkage = 0.01,
-             interaction.depth = 1, train.fraction = 1, cv.folds = 4)
+             data = data[train, ], n.trees = 2000, 
+             shrinkage = 0.005,
+             interaction.depth = 6, train.fraction = 1, cv.folds = 4)
+
+
+# install.packages("caret")
+library(caret)
+
+ada_2 <- train(data[train, -1], as.factor(data[train, 1]),
+          method = "gbm", shrinkage = 0.005,
+          interaction.depth = 6, train.fraction = 1, cv.folds = 4, 
+          distribution = "adaboost")
+
+
+set.seed(1)
+
+# install.packages("doMC")
+
+gbmGrid <- expand.grid(.interaction.depth = 4:6, 
+                       .n.trees = c(500, 1000), 
+                       .shrinkage = c(0.001, 0.01, 0.05))
+
+seq(0.001, 0.05, by = 0.01)
+
+# install.packages("lda")
+library(lda)
+
+bootControl <- trainControl(number = 3)
+gbmFit <- train(data[train, -1], 
+                as.factor(data[train, 1]), 
+                method = "gbm", 
+                trControl = trainControl(method = "cv", number = 3), 
+                distribution = "adaboost",
+                verbose = TRUE,
+                bag.fraction = 0.5,
+                train.fraction = 1,
+                tuneGrid = gbmGrid)
+
+cforest_1 <- train(as.factor(Choice) ~ ., data = data[train, ],
+                  method = "cforest",
+                  trControl = trainControl(method = "cv", number = 1),
+                  verbose = TRUE,
+                  bag.fraction = 0.5,
+                  train.fraction = 1)
+      
+      
+
 
 # install.packages("ada")
 library(ada)
 
+
+
 # install.packages("lars")
 library(lars)
 
-lasso_1 <- lars(as.matrix(data[train, -1]), as.numeric(data[train, 1]), type = "lasso")
-
-# install.packages("glmnet")
-library(glmnet)
-
-glm_1 <- cv.glmnet(as.matrix(data[train, -1]), as.factor(data[train, 1]),
-       family = "binomial", type = "class")
-
+# lasso_1 <- lars(as.matrix(data[train, -1]), as.numeric(data[train, 1]), type = "lasso")
+# 
+# # install.packages("glmnet")
+# library(glmnet)
+# 
+# glm_1 <- cv.glmnet(as.matrix(data[train, -1]), as.factor(data[train, 1]),
+#        family = "binomial", type = "class")
+# 
+# mboost_1 <- mboost(as.factor(Choice) ~ ., baselearner = "btree", 
+#                    data = data[train, ], family = Binomial(),
+#                    control = boost_control(mstop = 1000))
 
 # ada_2 <- ada(as.matrix(data[train, -1]), as.numeric(data[train, 1]), loss = "data",
 #              type = "real", iter = 400, nu = 0.1, bag.frac = 0.5)
@@ -47,10 +96,14 @@ glm_1 <- cv.glmnet(as.matrix(data[train, -1]), as.factor(data[train, 1]),
 # pred.ada_1 <- predict(glm_1, newx = as.matrix(data[-train, -1]), s = 0.1, type="response")
 # pred.ada_1 <- as.numeric(predict(glm_1, as.matrix(data[-train, -1]), type="class", s=glm_1$lambda.1se))
 # pred.ada_1 <- predict(lasso_1, newx = as.matrix(data[-train, -1]), s = 10, type="fit")
+# pred.ada_1 <- as.numeric(predict(mboost_1, newdata = data[-train, ], type="class"))
+# pred.ada_1 <- predict(ada_2, newdata = data[-train, ], type="vector")
+preds <- predict(gbmFit$finalModel, newdata = data[-train, ], type = "response", 
+                 n.trees = 200)
 
-pred.label <- 1*(pred.ada_1 > 0) #1: > 0; 0: otherwise
+pred.label <- 1*(preds < mean(preds)) #1: > 0; 0: otherwise
 
-table(pred.ada_1, data[-train , 1]) #In test data, the label is -1 & 1
+table(pred.label, data[-train , 1]) #In test data, the label is -1 & 1
 
 
 # AUC 
@@ -89,7 +142,7 @@ ROC.score <- function(Sen,Spe){
   out
 }
 
-temp <- ROC(cbind(data[-train, 1], pred.ada_1))
+temp <- ROC(cbind(data[-train, 1], pred.label))
 
 ROC.score(temp$Sen,temp$Spe) #AUC score
 
