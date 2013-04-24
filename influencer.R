@@ -56,6 +56,24 @@ rpart.plot(tree_1$finalModel)
 preds <- predict(tree_1$finalModel, newdata = data[-inTrain$Resample1, ], type = "class")
   table(preds, data[-inTrain$Resample1, 1]) #In test data, the label is -1 & 1
 
+# install.packages("kernlab")
+library(kernlab)
+
+cvControl <- trainControl(method = "cv",
+                          number = 2,
+                          classProbs = TRUE,
+                          verboseIter = TRUE)
+svmr_1 <- train(Choice ~ .,
+                data = data[inTrain$Resample1, ],
+                method = "svmRadial",
+                metric = "ROC",
+                tuneLength = 4,
+                preProcess = c("center", "scale"),
+                trControl = cvControl)
+
+svmr_classes <- predict(svmr_1, newdata = data[-inTrain$Resample1, ])
+confusionMatrix(svmr_classes, data[-inTrain$Resample1, 1])
+
 
 
 
