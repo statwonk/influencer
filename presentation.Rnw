@@ -35,6 +35,7 @@
 \usepackage{times}
 \usepackage[T1]{fontenc}
 \usepackage{placeins}
+\usepackage{enumerate}
 
 
 
@@ -75,6 +76,12 @@ library(ggplot2)
 theme_set(theme_grey(base_size = 9))
 @
 
+<<custom-dev>>=
+my_pdf = function(file, width, height) {
+  pdf(file, width = width, height = height, pointsize = 10)
+}
+@
+
 
 
 % The main document
@@ -93,78 +100,87 @@ theme_set(theme_grey(base_size = 9))
 
 Goal: predict which people are influential in a social network.\\
 
-Data: a pair-wise preference learning task.  Each datapoint describes two individuals, A and B.
+Data: a pair-wise preference learning task.  Each datapoint describes two individuals, A and B.\\
 
 \begin{enumerate}
-\item Dependent variable: a binary label representing a human judgement about which one of the two individuals is more influential.
-\item Independent variables: 11 pre-computed, non-negative numeric features based on Twitter activity.
+  \item Dependent variable: a binary label representing a human judgement about which one of the two individuals is more influential.
+  \item Independent variables: 11 pre-computed, non-negative numeric features based on Twitter activity.
 \end{enumerate}
 
-  <<fig_1, echo=FALSE, fig=TRUE, sanitize=TRUE, out.width='3in', out.height='2in', cache=TRUE, warning=FALSE>>=
-library(ggplot2)
-library(reshape2)
-library(tikzDevice)
-library(ggthemes)
+% <<fig_1, echo=FALSE, fig=TRUE, sanitize=TRUE, out.width='3in', out.height='2in', cache=TRUE, warning=FALSE>>=
+% library(ggplot2)
+% library(reshape2)
+% library(tikzDevice)
+% library(ggthemes)
+% 
+% data <- read.csv("C:/R_stuff/school/article/data.csv")
+% 
+% 
+% sample_a <- sample(table(data$user_id), 400, replace = TRUE)
+% sample_b <- sample(table(data$user_id), 400, replace = TRUE)
+% 
+% raw.samples <- as.data.frame(t(rbind(sample_a, sample_b)))
+% raw.samples <- melt(raw.samples)
+% 
+% ggplot(raw.samples, aes(x = value)) +
+%   geom_histogram(aes(y = ..density..)) +
+%   facet_grid(variable ~ . ) +
+%   xlab("Tokens Earned") +
+%   ylab("Density") +
+%   scale_x_continuous(breaks = seq(0, 50, 2), limit = c(0, 30)) +
+%   theme_few() +
+%   theme(strip.text = element_text(size = 24),
+%         axis.text = element_text(size = 14),
+%         axis.title = element_text(size = 20)) +
+%   stat_function(fun = dnorm,
+%               args = c(mean = mean(raw.samples$value),
+%                        sd = sd(raw.samples$value)),
+%               colour = "blue", size = 1)
+% @
+\end{frame}
 
-data <- read.csv("C:/R_stuff/school/article/data.csv")
+\begin{frame}[t, fragile]{Data summary}
+%   \begin{block}{Inputs}
+<<summary, echo=TRUE, fig=FALSE, sanitize=TRUE, tidy=TRUE, out.width='2in', out.height='2in', cache=TRUE, warning=FALSE, size='small'>>=
+setwd("C:/R_stuff/influencer/influencer")
+data <- read.csv("train.csv")
 
-
-sample_a <- sample(table(data$user_id), 400, replace = TRUE)
-sample_b <- sample(table(data$user_id), 400, replace = TRUE)
-
-raw.samples <- as.data.frame(t(rbind(sample_a, sample_b)))
-raw.samples <- melt(raw.samples)
-
-ggplot(raw.samples, aes(x = value)) +
-  geom_histogram(aes(y = ..density..)) +
-  facet_grid(variable ~ . ) +
-  xlab("Tokens Earned") +
-  ylab("Density") +
-  scale_x_continuous(breaks = seq(0, 50, 2), limit = c(0, 30)) +
-  theme_few() +
-  theme(strip.text = element_text(size = 24),
-        axis.text = element_text(size = 14),
-        axis.title = element_text(size = 20)) +
-  stat_function(fun = dnorm,
-              args = c(mean = mean(raw.samples$value),
-                       sd = sd(raw.samples$value)),
-              colour = "blue", size = 1)
+summary(data[ , 1:3], digits = 2)
 @
-\end{frame}
-
-\begin{frame}[t]{General formalization of haplotyping.}
-  \begin{block}{Inputs}
-    \begin{itemize}
-    \item A \alert{genotype matrix} $G$.
-    \item The \alert{rows} of the matrix are \alert{taxa / individuals}.
-    \item The \alert{columns} of the matrix are \alert{SNP sites /
-        characters}. 
-    \end{itemize}
-  \end{block}
-  \begin{block}{Outputs}
-    \begin{itemize}
-    \item A \alert{haplotype matrix} $H$.
-    \item Pairs of rows in $H$ \alert{explain} the rows of $G$.
-    \item The haplotypes in $H$ are \alert{biologically plausible}. 
-    \end{itemize}
-  \end{block}
+%   \end{block}
 \end{frame}
 
 
-\begin{frame}[t]{Our formalization of haplotyping.}
-  \begin{block}{Inputs}
-    \begin{itemize}
-    \item A genotype matrix $G$.
-    \item The rows of the matrix are individuals / taxa.
-    \item The columns of the matrix are SNP sites / characters.
-    \end{itemize}
-  \end{block}
-  \begin{block}{Outputs}
-    \begin{itemize}
-    \item A haplotype matrix $H$.
-    \end{itemize}
-  \end{block}
+\begin{frame}[t, fragile]{Data summary}
+%   \begin{block}{Inputs}
+<<pairs, echo=FALSE, fig=FALSE, sanitize=TRUE, tidy=TRUE, out.width='3in', out.height='3in', cache=TRUE, warning=FALSE, size='tiny', dev='my_pdf', fig.ext='pdf'>>=
+library(tikzDevice)
+
+setwd("C:/R_stuff/influencer/influencer")
+data <- read.csv("train.csv")
+
+pairs(data[ , 1:3])
+@
+%   \end{block}
 \end{frame}
+
+\begin{frame}[t, fragile]{And we're modeling...}
+%   \begin{block}{Inputs}
+<<modeling_1, echo=TRUE, eval=FALSE, sanitize=TRUE, tidy=TRUE, cache=TRUE, warning=FALSE, size='tiny'>>=
+set.seed(1)
+train <- sample(1:length(data$Choice), 0.8 * length(data$Choice), replace = FALSE)
+
+# install.packages("gbm")
+library(gbm)
+
+ada_1 <- gbm(Choice ~ ., distribution = "adaboost", 
+             data = data[train, ], n.trees = 2000, 
+             shrinkage = 0.005,
+             interaction.depth = 6, train.fraction = 1, cv.folds = 4)
+@
+%   \end{block}
+\end{frame}
+
 
 
 \begin{frame}{We can do perfect phylogeny haplotyping efficiently, but
