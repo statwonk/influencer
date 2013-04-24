@@ -34,6 +34,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage{times}
 \usepackage[T1]{fontenc}
+\usepackage{placeins}
+
 
 
 % Setup TikZ
@@ -45,45 +47,33 @@
 
 % Author, Title, etc.
 
-\title[Block Partitioning and Perfect Phylogenies] 
+\title[Block Advanced Topics] 
 {%
-  On the Complexity of SNP Block Partitioning Under the Perfect
-  Phylogeny Model%
+  Influencers in Social Networks, a Kaggle Competition%
 }
 
-\author[Gramm, Hartman, Nierhoff, Sharan, Tantau]
+\author[Peters]
 {
-  Jens~Gramm\inst{1} \and
-  Tzvika~Hartman\inst{2} \and
-  Till~Nierhoff\inst{3} \and
-  Roded~Sharan\inst{4} \and
-  \textcolor{green!50!black}{Till~Tantau}\inst{5}
+  Christopher~Peters\inst{1}
 }
 
-\institute[Tübingen and others]
+\institute[LSU]
 {
   \inst{1}%
-  Universität Tübingen, Germany
-  \and
-  \vskip-2mm
-  \inst{2}%
-  Bar-Ilan University, Ramat-Gan, Israel
-  \and
-  \vskip-2mm
-  \inst{3}%
-  International Computer Science Institute, Berkeley, USA
-  \and
-  \vskip-2mm
-  \inst{4}%
-  Tel-Aviv University, Israel
-  \and
-  \vskip-2mm
-  \inst{5}%
-  Universität zu Lübeck, Germany
+  Louisiana State University
 }
 
 \date[WABI 2006]
-{Workshop on Algorithms in Bioinformatics, 2006}
+{EXST 7152: Advanced Topics in Statistical Modeling, 2013}
+
+<<set-options, include=FALSE, cache=FALSE>>=
+library(knitr)
+opts_chunk$set(dev='tikz', fig.align='center', cache=TRUE, message=FALSE, background='white')
+options(replace.assign=TRUE,width=85)
+knit_hooks$set(fig=function(before, options, envir){if (before) par(mar=c(4,4,.1,.1),cex.lab=.95,cex.axis=.9,mgp=c(2,.7,0),tcl=-.3)})
+library(ggplot2)
+theme_set(theme_grey(base_size = 9))
+@
 
 
 
@@ -95,17 +85,51 @@
   \titlepage
 \end{frame}
 
-\begin{frame}{Outline}
-  \tableofcontents
-\end{frame}
-
-
 \section{Introduction}
 
-\subsection{The Model and the Problem}
+\subsection{The Competition}
 
-\begin{frame}{What is haplotyping and why is it important?}
-  You hopefully know this after the previous three talks\dots
+\begin{frame}{Influencers in Social Networks}
+
+Goal: predict which people are influential in a social network.\\
+
+Data: a pair-wise preference learning task.  Each datapoint describes two individuals, A and B.
+
+\begin{enumerate}
+\item Dependent variable: a binary label representing a human judgement about which one of the two individuals is more influential.
+\item Independent variables: 11 pre-computed, non-negative numeric features based on Twitter activity.
+\end{enumerate}
+
+  <<fig_1, echo=FALSE, fig=TRUE, sanitize=TRUE, out.width='3in', out.height='2in', cache=TRUE, warning=FALSE>>=
+library(ggplot2)
+library(reshape2)
+library(tikzDevice)
+library(ggthemes)
+
+data <- read.csv("C:/R_stuff/school/article/data.csv")
+
+
+sample_a <- sample(table(data$user_id), 400, replace = TRUE)
+sample_b <- sample(table(data$user_id), 400, replace = TRUE)
+
+raw.samples <- as.data.frame(t(rbind(sample_a, sample_b)))
+raw.samples <- melt(raw.samples)
+
+ggplot(raw.samples, aes(x = value)) +
+  geom_histogram(aes(y = ..density..)) +
+  facet_grid(variable ~ . ) +
+  xlab("Tokens Earned") +
+  ylab("Density") +
+  scale_x_continuous(breaks = seq(0, 50, 2), limit = c(0, 30)) +
+  theme_few() +
+  theme(strip.text = element_text(size = 24),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 20)) +
+  stat_function(fun = dnorm,
+              args = c(mean = mean(raw.samples$value),
+                       sd = sd(raw.samples$value)),
+              colour = "blue", size = 1)
+@
 \end{frame}
 
 \begin{frame}[t]{General formalization of haplotyping.}
@@ -253,14 +277,6 @@
 \begin{frame}{The formal computational problem.}
   We are interested in the computational complexity of \\
   \alert{the function \alert{$\chi_{\operatorname{PP}}$}}:
-  \begin{itemize}
-  \item It gets genotype matrices as input.
-  \item It maps them to a number $k$.
-  \item This number is minimal such that the sites can be
-    covered by $k$ sets, each admitting a perfect phylogeny.
-    \\
-    (We call this a \alert{pp-partition}.)
-  \end{itemize}
 \end{frame}
 
 
