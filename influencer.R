@@ -1,9 +1,12 @@
 # Christopher Peters
 # Influencer
 
-setwd("C:/Users/Chris/Desktop/RCode/influencer/influencer/")
+# setwd("C:/Users/Chris/Desktop/RCode/influencer/influencer/")
+setwd("C:/R_stuff/influencer/influencer")
 data <- read.csv("train.csv")
 # test <- read.csv("test.csv")
+
+pairs(data[ , 1:5])
 
 set.seed(1)
 train <- sample(1:length(data$Choice), 0.8 * length(data$Choice), replace = FALSE)
@@ -18,12 +21,33 @@ ada_1 <- gbm(Choice ~ ., distribution = "adaboost",
 
 
 # install.packages("caret")
+# install.packages("e1071")
+# install.packages("pROC")
 library(caret)
+library(e1071)
+library(pROC)
 
-ada_2 <- train(data[train, -1], as.factor(data[train, 1]),
-          method = "gbm", shrinkage = 0.005,
-          interaction.depth = 6, train.fraction = 1, cv.folds = 4, 
-          distribution = "adaboost")
+inTrain <- createDataPartition(y = data$Choice,
+                               p = 0.8)
+
+ctrl <- trainControl(method = "cv", 
+                     number = 3,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary)
+
+data$Choice <- as.factor(data$Choice)
+levels(data$Choice) <- c("X0", "X1")
+
+tree_1 <- train(Choice ~ .,
+          data = data[inTrain$Resample1, ],
+          method = "rpart",
+          metric = "ROC",
+          tuneLength = 15,
+          trControl = ctrl)
+
+gbmGrid <- expand.grid(.interaction.depth = 6, 
+                       .n.trees = c(2000), 
+                       .shrinkage = c(0.005))
 
 
 set.seed(1)
